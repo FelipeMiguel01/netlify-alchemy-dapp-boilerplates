@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro Completo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2, h3 {
+            text-align: center;
+            color: #007bff;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .resultado {
+            margin-top: 20px;
+            background-color: #e9f5ff;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .navegacao {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .navegacao button {
+            width: 32%;
+            font-size: 14px;
+        }
+        .hidden {
+            display: none;
+        }
+        .parcela-paga {
+            background-color: #d4edda;
+        }
+        .parcela-editar {
+            display: flex;
+            align-items: center;
+        }
+        .parcela-editar input[type="checkbox"] {
+            margin-left: 10px;
+        }
+        .chart-container {
+            margin-top: 20px;
+        }
+        .alto-contraste {
+            background-color: #000;
+            color: #fff;
+        }
+    </style>
+</head>
+<body onload="carregarDados(); solicitarPermissaoNotificacao();">
+    <div class="container">
+        <h2>Controle Financeiro Completo</h2>
+        <button onclick="alternarModoContraste()">Modo de Alto Contraste</button>
+        <div class="navegacao">
+            <button onclick="mostrarSecao('financiamento')">Financiamento</button>
+            <button onclick="mostrarSecao('seguro')">Seguro</button>
+            <button onclick="mostrarSecao('salario')">Salário</button>
+        </div>
+
+        <!-- Seção de Financiamento -->
+        <div id="financiamento" class="secao">
+            <h3>Controle de Financiamento Quinzenal</h3>
+            <label for="valorFinanciamento">Valor do Financiamento (R$):</label>
+            <input type="number" id="valorFinanciamento" placeholder="Digite o valor total">
+            <label for="valorEntradaFinanciamento">Valor de Entrada (R$):</label>
+            <input type="number" id="valorEntradaFinanciamento" placeholder="Digite o valor da entrada">
+            <label for="valorParcelaFinanciamento">Valor da Parcela Quinzenal (R$):</label>
+            <input type="number" id="valorParcelaFinanciamento" placeholder="Digite o valor da parcela">
+            <label for="dataInicioFinanciamento">Data de Início:</label>
+            <input type="date" id="dataInicioFinanciamento">
+            <button onclick="calcularParcelasFinanciamento()">Calcular Parcelas</button>
+            <button onclick="exportarParaPDF('resultadoFinanciamento', 'Relatório de Financiamento')">Exportar para PDF</button>
+            <div id="resultadoFinanciamento" class="resultado"></div>
+            <div class="chart-container">
+                <canvas id="graficoFinanciamento"></canvas>
+            </div>
+        </div>
+
+        <!-- Seção de Seguro -->
+        <div id="seguro" class="secao hidden">
+            <h3>Controle de Pagamento de Seguro Mensal</h3>
+            <label for="valorSeguro">Valor do Seguro Mensal (R$):</label>
+            <input type="number" id="valorSeguro" placeholder="Digite o valor do seguro">
+            <label for="dataPrimeiroPagamentoSeguro">Data do Primeiro Pagamento:</label>
+            <input type="date" id="dataPrimeiroPagamentoSeguro">
+            <button onclick="calcularPagamentosSeguro()">Calcular Pagamentos</button>
+            <button onclick="exportarParaPDF('resultadoSeguro', 'Relatório de Pagamento de Seguro')">Exportar para PDF</button>
+            <div id="resultadoSeguro" class="resultado"></div>
+            <div class="chart-container">
+                <canvas id="graficoSeguro"></canvas>
+            </div>
+        </div>
+
+        <!-- Seção de Salário -->
+        <div id="salario" class="secao hidden">
+            <h3>Controle de Recebimento de Salário Quinzenal</h3>
+            <label for="valorSalario">Valor do Salário Quinzenal (R$):</label>
+            <input type="number" id="valorSalario" placeholder="Digite o valor do salário">
+            <label for="dataInicioSalario">Data do Primeiro Recebimento:</label>
+            <input type="date" id="dataInicioSalario">
+            <button onclick="calcularRecebimentosSalario()">Calcular Recebimentos</button>
+            <button onclick="exportarParaPDF('resultadoSalario', 'Relatório de Recebimentos de Salário')">Exportar para PDF</button>
+            <div id="resultadoSalario" class="resultado"></div>
+            <div class="chart-container">
+                <canvas id="graficoSalario"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mostrarSecao(secaoId) {
+            document.querySelectorAll('.secao').forEach(secao => secao.classList.add('hidden'));
+            document.getElementById(secaoId).classList.remove('hidden');
+        }
+
+        function salvarNoLocalStorageSeguro(chave, dados) {
+            const encryptedData = CryptoJS.AES.encrypt(JSON.stringify(dados), 'chave-secreta').toString();
+            localStorage.setItem(chave, encryptedData);
+        }
+
+        function carregarDoLocalStorageSeguro(chave) {
+            const encryptedData = localStorage.getItem(chave);
+            if (!encryptedData) return null;
+            const bytes = CryptoJS.AES.decrypt(encryptedData, 'chave-secreta');
+            return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+        }
+
+        function exportarParaPDF(elementoId, titulo) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const conteudo = document.getElementById(elementoId).innerText;
+            doc.text(titulo, 10, 10);
+            doc.text(conteudo, 10, 20);
+            doc.save(`${titulo}.pdf`);
+        }
+
+        function solicitarPermissaoNotificacao() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('Permissão de notificação concedida.');
+                    }
+                });
+            }
+        }
+
+        function enviarNotificacao(mensagem) {
+            if (Notification.permission === 'granted') {
+                new Notification(mensagem);
+            }
+        }
+
+        function agendarNotificacao(data, mensagem) {
+            const agora = new Date().getTime();
+            const tempoRestante = new Date(data).getTime() - agora;
+
+            if (tempoRestante > 0) {
+                setTimeout(() => enviarNotificacao(mensagem), tempoRestante);
+            }
+        }
+
+        function calcularParcelasFinanciamento() {
+            const valorTotal = parseFloat(document.getElementById('valorFinanciamento').value);
+            const valorEntrada = parseFloat(document.getElementById('valorEntradaFinanciamento').value);
+            const valorParcela = parseFloat(document.getElementById('valorParcelaFinanciamento').value);
+            const dataInicio = new Date(document.getElementById('dataInicioFinanciamento').value);
+
+            if (isNaN(valorTotal) || isNaN(valorEntrada) || isNaN(valorParcela) || !dataInicio) {
+                alert("Preencha todos os campos corretamente.");
+                return;
+            }
+
+            let saldoDevedor = valorTotal - valorEntrada;
+            if (saldoDevedor <= 0) {
+                alert("O valor de entrada é maior ou igual ao valor total do financiamento.");
+                return;
+            }
+
+            let resultado = document.getElementById('resultadoFinanciamento');
+            resultado.innerHTML = "<h3>Detalhes das Parcelas</h3><ul>";
+
+            let parcelasDetalhes = [];
+            let parcela = 1;
+            let datas = [];
+            let valores = [];
+
+            while (saldoDevedor > 0) {
+                let valorPago = Math.min(valorParcela, saldoDevedor);
+                saldoDevedor -= valorPago;
+
+                let dataParcela = new Date(dataInicio);
+                dataParcela.setDate(dataParcela.getDate() + (parcela - 1) * 15);
+
+                resultado.innerHTML += `<li class="parcela-editar">Parcela ${parcela}: R$ ${valorPago.toFixed(2)} - Data: ${dataParcela.toLocaleDateString('pt-BR')}
+                    <input type="checkbox" onchange="marcarParcelaPaga(this, ${parcela})"> Pago</li>`;
+
+                parcelasDetalhes.push({
+                    parcela: parcela,
+                    valor: valorPago.toFixed(2),
+                    data: dataParcela.toLocaleDateString('pt-BR'),
+                    paga: false
+                });
+
+                datas.push(dataParcela.toLocaleDateString('pt-BR'));
+                valores.push(valorPago.toFixed(2));
+
+                // Agendamento de notificações
+                agendarNotificacao(dataParcela, `Lembrete: Parcela ${parcela} do financiamento vence hoje!`);
+
+                parcela++;
+            }
+            resultado.innerHTML += "</ul>";
+            salvarNoLocalStorageSeguro('detalhesFinanciamento', parcelasDetalhes);
+
+            desenharGrafico('graficoFinanciamento', 'Parcelas de Financiamento', datas, valores);
+        }
+
+        function marcarParcelaPaga(checkbox, parcela) {
+            let detalhes = carregarDoLocalStorageSeguro('detalhesFinanciamento');
+            if (detalhes) {
+                detalhes.forEach(item => {
+                    if (item.parcela === parcela) {
+                        item.paga = checkbox.checked;
+                    }
+                });
+                salvarNoLocalStorageSeguro('detalhesFinanciamento', detalhes);
+            }
+            if (checkbox.checked) {
+                checkbox.parentElement.classList.add('parcela-paga');
+            } else {
+                checkbox.parentElement.classList.remove('parcela-paga');
+            }
+        }
+
+        function desenharGrafico(elementoId, titulo, labels, data) {
+            const ctx = document.getElementById(elementoId).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: titulo,
+                        data: data,
+                        borderColor: '#007bff',
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Valor (R$)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function alternarModoContraste() {
+            document.body.classList.toggle('alto-contraste');
+        }
+
+        function carregarDados() {
+            const financiamento = carregarDoLocalStorageSeguro('detalhesFinanciamento');
+            if (financiamento) {
+                let resultado = document.getElementById('resultadoFinanciamento');
+                resultado.innerHTML = "<h3>Detalhes das Parcelas</h3><ul>";
+                financiamento.forEach(item => {
+                    resultado.innerHTML += `<li class="parcela-editar ${item.paga ? 'parcela-paga' : ''}">Parcela ${item.parcela}: R$ ${item.valor} - Data: ${item.data}
+                        <input type="checkbox" ${item.paga ? 'checked' : ''} onchange="marcarParcelaPaga(this, ${item.parcela})"> Pago</li>`;
+                });
+                resultado.innerHTML += "</ul>";
+            }
+        }
+    </script>
+</body>
+</html>
+
+
